@@ -1,0 +1,17 @@
+period,region,product,revenue,orders,returns
+2026-09,North,Core,18000,180,4
+2026-09,North,Services,12000,120,2
+2026-09,South,Core,15000,150,3
+2026-09,South,Services,10000,100,2
+2026-09,East,Core,15000,150,3
+2026-09,East,Services,10000,100,2
+2026-09,West,Core,12000,120,3
+2026-09,West,Services,8000,80,1
+2026-10,North,Core,11000,110,4
+2026-10,North,Services,7000,70,3
+2026-10,South,Core,15500,155,3
+2026-10,South,Services,10500,105,2
+2026-10,East,Core,15500,155,3
+2026-10,East,Services,10500,105,2
+2026-10,West,Core,11000,110,3
+2026-10,West,Services,7000,70,2
