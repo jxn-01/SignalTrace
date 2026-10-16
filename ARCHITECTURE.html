@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SignalTrace architecture: Streamlit app shell, bounded LLM agent loop, tools, controls, and offline mode.">
+  <title>SignalTrace | Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172521;
+      --muted: #53645e;
+      --paper: #f7f8f4;
+      --white: #fff;
+      --line: #d9e1dc;
+      --green: #126d58;
+      --green-pale: #e5f2ec;
+      --orange: #bb4f2c;
+      --orange-pale: #fff0e7;
+      --yellow: #e6bd58;
+      --sans: "DM Sans", sans-serif;
+      --display: "Space Grotesk", sans-serif;
+      --mono: "DM Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 var(--sans); }
+    a { color: var(--green); text-underline-offset: 3px; }
+    a:hover { color: var(--orange); }
+    a:focus-visible, summary:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+    code, .mono, .eyebrow, .node-kicker, .footnote { font-family: var(--mono); }
+    code { overflow-wrap: anywhere; }
+    .skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 5; padding: .5rem .8rem; background: var(--ink); color: var(--white); }
+    .skip-link:focus { top: 1rem; }
+    .topbar { display: flex; min-height: 60px; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem max(1.25rem, calc((100vw - 1120px) / 2)); border-bottom: 1px solid var(--line); background: var(--white); }
+    .brand { color: var(--ink); font: 700 1rem var(--display); text-decoration: none; }
+    .brand span { color: var(--green); }
+    nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+    nav a { color: var(--muted); font-size: .84rem; text-decoration: none; }
+    main { max-width: 1120px; margin: 0 auto; padding: 0 1.35rem 4rem; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(250px, .7fr); gap: 2rem; align-items: end; padding: 3.6rem 0 2.6rem; }
+    .eyebrow { margin: 0 0 .8rem; color: var(--green); font-size: .73rem; letter-spacing: .08em; text-transform: uppercase; }
+    h1, h2, h3 { font-family: var(--display); line-height: 1.16; }
+    h1 { margin: 0; font-size: clamp(2.35rem, 5vw, 4rem); }
+    h1 span { color: var(--green); }
+    h2 { margin: 0; font-size: clamp(1.6rem, 3vw, 2.3rem); }
+    h3 { margin: 0; font-size: 1.05rem; }
+    .lede { max-width: 730px; margin: 1rem 0 0; color: var(--muted); font-size: 1.08rem; }
+    .hero-note { padding: 1.15rem 1.2rem; border-left: 3px solid var(--orange); background: var(--orange-pale); color: #633622; }
+    .hero-note strong { display: block; margin-bottom: .3rem; color: var(--ink); font-family: var(--display); }
+    .key { display: inline-flex; margin-top: 1rem; padding: .28rem .55rem; border: 1px solid #e6b79f; color: #71351d; font: 500 .7rem var(--mono); text-transform: uppercase; }
+    section { padding: 2.8rem 0; border-top: 1px solid var(--line); }
+    .section-head { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 1.5rem; margin-bottom: 1.3rem; }
+    .section-head .eyebrow { margin-top: .25rem; }
+    .section-head p:last-child { max-width: 760px; margin: .55rem 0 0; color: var(--muted); }
+
+    .shell { padding: 1.2rem; border: 1px solid #b7d4c8; background: var(--green-pale); }
+    .boundary-label { display: flex; align-items: center; gap: .65rem; margin-bottom: 1rem; color: #145843; font: 500 .74rem var(--mono); text-transform: uppercase; }
+    .boundary-label::after { height: 1px; flex: 1; background: #b7d4c8; content: ""; }
+    .shell-flow { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr) 36px minmax(0, 1fr); align-items: stretch; }
+    .node { min-width: 0; padding: 1rem; border: 1px solid var(--line); background: var(--white); }
+    .node-kicker { display: block; margin-bottom: .5rem; color: var(--green); font-size: .68rem; text-transform: uppercase; }
+    .node p { margin: .4rem 0 0; color: var(--muted); font-size: .88rem; }
+    .arrow { display: grid; place-items: center; color: var(--green); font-size: 1.35rem; }
+    .boundary-note { margin: .9rem 0 0; color: #386451; font-size: .85rem; }
+
+    .agent-boundary { padding: 1.25rem; border: 2px solid var(--orange); background: #fff9f5; }
+    .agent-boundary .boundary-label { color: #873b20; }
+    .agent-boundary .boundary-label::after { background: #ecc4b2; }
+    .agent-flow { display: grid; grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) 30px minmax(0, 1fr); align-items: stretch; }
+    .agent-flow .node { border-top: 3px solid var(--orange); }
+    .agent-flow .node-kicker { color: var(--orange); }
+    .agent-flow .arrow { color: var(--orange); }
+    .tool-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; margin-top: .8rem; }
+    .tool { padding: .9rem; border-top: 2px solid var(--green); background: var(--white); }
+    .tool code { display: block; color: var(--ink); font-size: .78rem; font-weight: 500; }
+    .tool p { margin: .4rem 0 0; color: var(--muted); font-size: .82rem; }
+    .return-loop { display: flex; align-items: center; gap: .7rem; margin: .9rem 0 0; padding: .75rem .9rem; border: 1px dashed var(--orange); color: #70381f; font-size: .87rem; }
+    .return-loop strong { color: var(--orange); font: 500 .72rem var(--mono); text-transform: uppercase; white-space: nowrap; }
+    .guardrails { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-top: 1.1rem; border: 1px solid var(--line); background: var(--line); }
+    .guardrail { padding: .9rem; background: var(--white); }
+    .guardrail b { display: block; font: 600 .88rem var(--display); }
+    .guardrail span { display: block; margin-top: .3rem; color: var(--muted); font-size: .8rem; }
+
+    .paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+    .path { padding: 1.1rem 1.2rem; background: var(--white); }
+    .path.agent { border-top: 3px solid var(--orange); }
+    .path.offline { border-top: 3px solid var(--muted); }
+    .path p { margin: .45rem 0 0; color: var(--muted); font-size: .9rem; }
+    .path-label { display: block; margin-top: .6rem; font: 500 .7rem var(--mono); text-transform: uppercase; }
+    .path.agent .path-label { color: var(--orange); }
+    .path.offline .path-label { color: var(--muted); }
+
+    .code-map { width: 100%; border-collapse: collapse; background: var(--white); text-align: left; }
+    .code-map th, .code-map td { padding: .75rem .85rem; border: 1px solid var(--line); vertical-align: top; }
+    .code-map th { background: #edf2ee; font: 500 .72rem var(--mono); text-transform: uppercase; }
+    .code-map td { color: var(--muted); font-size: .88rem; }
+    .code-map td:first-child { width: 29%; color: var(--ink); font-weight: 600; }
+    .honesty { margin-top: 1rem; padding: .9rem 1rem; border-left: 3px solid var(--yellow); background: #fff8e5; color: #5c4b1d; }
+    .links { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.4rem; }
+    .button { display: inline-flex; min-height: 42px; align-items: center; padding: .45rem .75rem; border: 1px solid var(--green); color: var(--green); font-weight: 700; text-decoration: none; }
+    .button:hover { background: var(--green-pale); }
+    footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.3rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
+    .footnote { font-size: .7rem; }
+
+    @media (max-width: 760px) {
+      .topbar { align-items: flex-start; }
+      nav { justify-content: flex-end; gap: .65rem; }
+      nav a { font-size: .76rem; }
+      .hero { grid-template-columns: 1fr; gap: 1.2rem; padding-top: 2.8rem; }
+      .section-head { grid-template-columns: 1fr; gap: .2rem; }
+      .shell-flow, .agent-flow { grid-template-columns: 1fr; gap: .45rem; }
+      .arrow { min-height: 22px; transform: rotate(90deg); }
+      .tool-row, .guardrails, .paths { grid-template-columns: 1fr; }
+      .return-loop { align-items: flex-start; flex-direction: column; }
+      .code-map { min-width: 620px; }
+      .table-wrap { overflow-x: auto; }
+      footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print { .topbar, .links { display: none; } body { background: white; } main { max-width: none; } section { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to architecture</a>
+  <header class="topbar">
+    <a class="brand" href="#top">Signal<span>Trace</span></a>
+    <nav aria-label="Architecture sections">
+      <a href="#system">System</a>
+      <a href="#agent">Agent loop</a>
+      <a href="#modes">Modes</a>
+      <a href="#code">Code map</a>
+    </nav>
+  </header>
+  <main id="main">
+    <div class="hero" id="top">
+      <div>
+        <p class="eyebrow">Architecture / SignalTrace</p>
+        <h1>One app.<br><span>One bounded agent.</span></h1>
+        <p class="lede">SignalTrace is a Streamlit app that contains a tool-using LLM agent. The app handles inputs and display; the highlighted loop is where the model chooses and uses approved analysis tools.</p>
+        <span class="key">Orange outline = agent runtime</span>
+      </div>
+      <aside class="hero-note">
+        <strong>What “agent” means here</strong>
+        The model can choose its next approved tool and respond to that tool’s result. It cannot run arbitrary code, change KPI scope, write to business systems, or continue beyond four tool calls.
+      </aside>
+    </div>
+
+    <section id="system">
+      <div class="section-head">
+        <p class="eyebrow">01 / App shell</p>
+        <div>
+          <h2>The application owns the experience</h2>
+          <p>Streamlit collects the request and data, validates the selected KPI scope, invokes the configured runtime, and presents the analyst-facing result. This layer is an app; by itself it is not the agent.</p>
+        </div>
+      </div>
+      <div class="shell" role="group" aria-label="Application shell flow">
+        <div class="boundary-label">Streamlit application · app.py</div>
+        <div class="shell-flow">
+          <div class="node"><span class="node-kicker">Person</span><h3>Business analyst</h3><p>Chooses the KPI, periods, breakdown dimension, and investigation question.</p></div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node"><span class="node-kicker">Input and display</span><h3>Streamlit UI</h3><p>Loads a CSV, checks required columns, selects live-agent or offline-preview mode, and displays evidence.</p></div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node"><span class="node-kicker">Locked task scope</span><h3>Investigation context</h3><p>Question, selected metric, baseline/current periods, dimension, and the local DataFrame.</p></div>
+        </div>
+        <p class="boundary-note">Only the investigation request, selected scope, and tool results are sent to the model. The raw CSV is processed locally.</p>
+      </div>
+    </section>
+
+    <section id="agent">
+      <div class="section-head">
+        <p class="eyebrow">02 / Agent boundary</p>
+        <div>
+          <h2>This is the agentic part</h2>
+          <p>The Python runtime gives the model a task and an allowlist. The model chooses which tool to call next, receives its result, and can continue or return a structured brief. The runtime validates and executes each call.</p>
+        </div>
+      </div>
+      <div class="agent-boundary" role="group" aria-label="Bounded LLM agent loop">
+        <div class="boundary-label">Bounded agent runtime · agent.py · maximum four tool calls</div>
+        <div class="agent-flow">
+          <div class="node"><span class="node-kicker">Decision</span><h3>LLM planner</h3><p>Reads the investigation context and prior tool results. Chooses the next approved call or returns a final brief.</p></div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node"><span class="node-kicker">Control point</span><h3>Validate &amp; execute</h3><p>Accepts only allowlisted tools, checks tool arguments against analyst-selected scope, runs local Python functions, and records a trace.</p></div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node"><span class="node-kicker">Observation</span><h3>Tool results</h3><p>Returns calculations and evidence to the model. The next choice can respond to what the tools found.</p></div>
+        </div>
+        <div class="tool-row" aria-label="The three approved tools">
+          <div class="tool"><code>check_data_quality</code><p>Check columns, missing values, numeric data, duplicates, and selected-period coverage.</p></div>
+          <div class="tool"><code>compare_kpi</code><p>Calculate totals, percentage change, and segment contributions by the analyst-selected dimension.</p></div>
+          <div class="tool"><code>get_metric_definition</code><p>Return the local definition and caveat for Revenue, Orders, or Returns.</p></div>
+        </div>
+        <div class="return-loop"><strong>Loop / stop</strong><span>Tool result returns to the LLM for the next decision. Stop on a final structured response, an error/uncertainty handoff, or the four-call limit.</span></div>
+      </div>
+      <div class="guardrails" aria-label="Agent guardrails">
+        <div class="guardrail"><b>Allowlist</b><span>No arbitrary code, SQL, network tools, or write actions.</span></div>
+        <div class="guardrail"><b>Scope lock</b><span>Tools cannot change the KPI, periods, or breakdown selected by the analyst.</span></div>
+        <div class="guardrail"><b>Evidence first</b><span>Quality, comparison, or definition gaps force human review.</span></div>
+        <div class="guardrail"><b>Human owns action</b><span>The agent reports findings and checks; it never changes business systems.</span></div>
+      </div>
+      <p class="boundary-note">The agent is required to call all three evidence tools before a normal final answer. Its discretion is in choosing their order, responding to returned evidence, and composing the result—not in changing the analyst’s scope.</p>
+    </section>
+
+    <section id="modes">
+      <div class="section-head">
+        <p class="eyebrow">03 / Runtime modes</p>
+        <div>
+          <h2>Same app, different control flow</h2>
+          <p>The configured model provider is Gemini or OpenAI. If neither key is active, SignalTrace can still demonstrate the calculations, but that fallback is not an agent run.</p>
+        </div>
+      </div>
+      <div class="paths">
+        <article class="path agent"><h3>Live bounded agent</h3><p>Streamlit sends the task context to the LLM. The model requests approved tools; Python validates and runs them; tool results return to the model until it finishes or reaches the bound.</p><span class="path-label">Model-directed loop</span></article>
+        <article class="path offline"><h3>Offline preview</h3><p>Python runs data-quality, definition, and comparison functions in a fixed sequence. It labels the result as a preview and requires human review.</p><span class="path-label">Fixed deterministic flow · not an agent</span></article>
+      </div>
+    </section>
+
+    <section id="code">
+      <div class="section-head">
+        <p class="eyebrow">04 / Implementation map</p>
+        <div>
+          <h2>Where each responsibility lives</h2>
+          <p>These files are in the separate SignalTrace repository; none are imported by DeskPilot.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="code-map">
+          <thead><tr><th scope="col">Component</th><th scope="col">Responsibility</th><th scope="col">App or agent?</th></tr></thead>
+          <tbody>
+            <tr><td><code>app.py</code></td><td>Streamlit inputs, provider configuration, rendering, and handoff to the runtime.</td><td>App shell</td></tr>
+            <tr><td><code>agent.py / run_bounded_agent</code></td><td>LLM tool-call loop, selected-scope enforcement, tool budget, trace, and final-result safeguards.</td><td>Agent runtime</td></tr>
+            <tr><td><code>agent.py / execute_tool</code></td><td>Dispatches only approved local analysis tools.</td><td>Agent tool executor</td></tr>
+            <tr><td><code>tests/test_agent.py</code></td><td>Tests calculations, tool loop, scope lock, and max-step handoff using a fake client.</td><td>Verification</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="honesty"><strong>Presentation note:</strong> call SignalTrace “a Streamlit app containing a bounded, tool-using agent.” In offline preview mode, call it a deterministic KPI analysis workflow, not an agent.</p>
+      <div class="links">
+        <a class="button" href="https://signaltrace-khwvq5gghhp6ygnbcd5myd.streamlit.app/">Open SignalTrace</a>
+        <a class="button" href="https://github.com/jxn-01/SignalTrace">Browse source</a>
+      </div>
+    </section>
+    <footer><span>SignalTrace / Architecture overview</span><span class="footnote">Bounded · Read-only · Human-reviewed</span></footer>
+  </main>
+</body>
+</html>

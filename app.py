@@ -17,6 +17,7 @@ from agent import (
 
 ROOT = Path(__file__).resolve().parent
 SAMPLE_PATH = ROOT / "sample_data.csv"
+ARCHITECTURE_PATH = ROOT / "ARCHITECTURE.html"
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 st.set_page_config(page_title="SignalTrace | KPI Investigator", page_icon="📊", layout="wide")
@@ -96,7 +97,20 @@ def render_result(result: dict[str, Any], metric: str) -> None:
                 st.json(output)
 
 
+def render_architecture() -> None:
+    st.title("SignalTrace Architecture")
+    st.caption("The app shell and the bounded agent loop, separated")
+    if st.button("Back to KPI investigator", icon=":material/arrow_back:"):
+        st.query_params.clear()
+        st.rerun()
+    st.iframe(ARCHITECTURE_PATH, height=1800)
+
+
 def main() -> None:
+    if st.query_params.get("view") == "architecture":
+        render_architecture()
+        return
+
     st.title("SignalTrace")
     st.caption("Bounded KPI investigation agent for human analysts")
     st.info(
@@ -126,6 +140,12 @@ def main() -> None:
             st.caption("Configure GEMINI_API_KEY or OPENAI_API_KEY in Streamlit Secrets to enable model-directed tool selection.")
         st.subheader("Data boundary")
         st.caption("The investigation request, selected KPI and periods, and tool results are sent to the model. Raw CSV rows are analyzed locally and are not sent as a file.")
+        st.link_button(
+            "Open architecture in new tab",
+            url=f"{st.context.url}?view=architecture",
+            icon=":material/account_tree:",
+            width="stretch",
+        )
 
     uploaded = st.file_uploader("Upload a KPI CSV (optional)", type=["csv"])
     try:

@@ -2,6 +2,8 @@
 
 A separate bounded AI-agent prototype for investigating KPI changes. DeskPilot remains a separate app and is not imported or modified by this package.
 
+**[View the rendered architecture](https://jxn-01.github.io/SignalTrace/ARCHITECTURE.html)** · [Open the deployed app](https://signaltrace-khwvq5gghhp6ygnbcd5myd.streamlit.app/)
+
 ## Business problem
 
 When a business KPI moves, analysts often spend time checking data quality, comparing segments, and finding the metric definition before they can brief a decision-maker. SignalTrace investigates where the movement occurred and prepares an evidence-backed analyst brief. It does not establish causation from correlation or take business actions.
