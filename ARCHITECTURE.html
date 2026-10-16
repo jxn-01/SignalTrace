@@ -84,6 +84,10 @@
     .guardrail { padding: .9rem; background: var(--white); }
     .guardrail b { display: block; font: 600 .88rem var(--display); }
     .guardrail span { display: block; margin-top: .3rem; color: var(--muted); font-size: .8rem; }
+    .agent-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1.1rem; }
+    .detail-card { padding: 1rem; border-top: 3px solid var(--orange); background: var(--white); }
+    .detail-card .node-kicker { color: var(--orange); }
+    .detail-card p { margin: .45rem 0 0; color: var(--muted); font-size: .86rem; }
 
     .paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); }
     .path { padding: 1.1rem 1.2rem; background: var(--white); }
@@ -115,6 +119,7 @@
       .shell-flow, .agent-flow { grid-template-columns: 1fr; gap: .45rem; }
       .arrow { min-height: 22px; transform: rotate(90deg); }
       .tool-row, .guardrails, .paths { grid-template-columns: 1fr; }
+      .agent-details { grid-template-columns: 1fr; }
       .return-loop { align-items: flex-start; flex-direction: column; }
       .code-map { min-width: 620px; }
       .table-wrap { overflow-x: auto; }
@@ -145,7 +150,7 @@
       </div>
       <aside class="hero-note">
         <strong>What “agent” means here</strong>
-        The model can choose its next approved tool and respond to that tool’s result. It cannot run arbitrary code, change KPI scope, write to business systems, or continue beyond four tool calls.
+        The model can choose the order of approved analysis tools and respond to their results. It cannot run arbitrary code, change KPI scope, write to business systems, or exceed four tool executions.
       </aside>
     </div>
 
@@ -175,11 +180,11 @@
         <p class="eyebrow">02 / Agent boundary</p>
         <div>
           <h2>This is the agentic part</h2>
-          <p>The Python runtime gives the model a task and an allowlist. The model chooses which tool to call next, receives its result, and can continue or return a structured brief. The runtime validates and executes each call.</p>
+          <p>The Python runtime gives the model a task and an allowlist. The model chooses the next tool from that list, receives its result, and can continue or return a structured brief. All three evidence tools are required for a normal final answer; the runtime validates and executes every call.</p>
         </div>
       </div>
       <div class="agent-boundary" role="group" aria-label="Bounded LLM agent loop">
-        <div class="boundary-label">Bounded agent runtime · agent.py · maximum four tool calls</div>
+        <div class="boundary-label">Bounded agent runtime · agent.py · maximum four tool executions</div>
         <div class="agent-flow">
           <div class="node"><span class="node-kicker">Decision</span><h3>LLM planner</h3><p>Reads the investigation context and prior tool results. Chooses the next approved call or returns a final brief.</p></div>
           <div class="arrow" aria-hidden="true">&rarr;</div>
@@ -192,7 +197,7 @@
           <div class="tool"><code>compare_kpi</code><p>Calculate totals, percentage change, and segment contributions by the analyst-selected dimension.</p></div>
           <div class="tool"><code>get_metric_definition</code><p>Return the local definition and caveat for Revenue, Orders, or Returns.</p></div>
         </div>
-        <div class="return-loop"><strong>Loop / stop</strong><span>Tool result returns to the LLM for the next decision. Stop on a final structured response, an error/uncertainty handoff, or the four-call limit.</span></div>
+        <div class="return-loop"><strong>Loop / stop</strong><span>A tool result returns to the LLM for its next decision. Stop on a final structured response, an error/uncertainty handoff, or the four-tool limit.</span></div>
       </div>
       <div class="guardrails" aria-label="Agent guardrails">
         <div class="guardrail"><b>Allowlist</b><span>No arbitrary code, SQL, network tools, or write actions.</span></div>
@@ -200,7 +205,12 @@
         <div class="guardrail"><b>Evidence first</b><span>Quality, comparison, or definition gaps force human review.</span></div>
         <div class="guardrail"><b>Human owns action</b><span>The agent reports findings and checks; it never changes business systems.</span></div>
       </div>
-      <p class="boundary-note">The agent is required to call all three evidence tools before a normal final answer. Its discretion is in choosing their order, responding to returned evidence, and composing the result—not in changing the analyst’s scope.</p>
+      <div class="agent-details" aria-label="How bounded agent behavior works">
+        <article class="detail-card"><span class="node-kicker">01 / Allowed tools</span><h3>What “bounded” means</h3><p>The model may request only the three Python functions shown above. The runtime validates their arguments and runs them locally; the model cannot execute arbitrary code, SQL, network requests, or business-system actions.</p></article>
+        <article class="detail-card"><span class="node-kicker">02 / Call budget</span><h3>What “four calls” counts</h3><p>The limit counts tool executions, not model/API requests. A model request can ask for a tool; another request may be needed to turn the final tool result into a brief. This implementation allows up to four tool executions and up to five model requests in one run.</p></article>
+        <article class="detail-card"><span class="node-kicker">03 / Model discretion</span><h3>What the agent decides</h3><p>The analyst selects the KPI, periods, and breakdown. The model chooses the order of the three required tools and reacts to their results. The runtime rejects any tool call that changes the selected scope.</p></article>
+      </div>
+      <p class="boundary-note">This is a bounded tool-using agent with limited autonomy: it can choose call order and synthesize evidence, but it must use all three tools and cannot redefine the task.</p>
     </section>
 
     <section id="modes">
