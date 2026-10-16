@@ -17,6 +17,7 @@ from agent import (
 
 ROOT = Path(__file__).resolve().parent
 SAMPLE_PATH = ROOT / "sample_data.csv"
+GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 st.set_page_config(page_title="SignalTrace | KPI Investigator", page_icon="📊", layout="wide")
 st.markdown(
@@ -36,7 +37,7 @@ def get_config_value(name: str, default: str | None = None) -> str | None:
         value = st.secrets.get(name, default)
     except FileNotFoundError:
         value = None
-    if value is None:
+    if value is None or value == "":
         value = os.getenv(name, default)
     return value
 
@@ -103,13 +104,22 @@ def main() -> None:
         "it does not prove cause or take business actions."
     )
 
-    api_key = get_config_value("OPENAI_API_KEY", "") or ""
-    model = get_config_value("OPENAI_MODEL", "gpt-4o-mini") or "gpt-4o-mini"
-    base_url = get_config_value("OPENAI_BASE_URL")
+    gemini_key = get_config_value("GEMINI_API_KEY", "") or ""
+    openai_key = get_config_value("OPENAI_API_KEY", "") or ""
+    if gemini_key:
+        api_key = gemini_key
+        provider = "Gemini"
+        model = get_config_value("GEMINI_MODEL", "gemini-2.5-flash") or "gemini-2.5-flash"
+        base_url = get_config_value("GEMINI_BASE_URL", GEMINI_OPENAI_BASE_URL) or GEMINI_OPENAI_BASE_URL
+    else:
+        api_key = openai_key
+        provider = "OpenAI"
+        model = get_config_value("OPENAI_MODEL", "gpt-4o-mini") or "gpt-4o-mini"
+        base_url = get_config_value("OPENAI_BASE_URL")
     with st.sidebar:
         st.subheader("Agent runtime")
         if api_key:
-            st.success(f"Live bounded agent · {model}")
+            st.success(f"Live bounded agent · {provider} · {model}")
             st.caption("Maximum four tool calls. No write or business-system tools are available.")
         else:
             st.warning("Offline preview only")

@@ -14,7 +14,7 @@ When a business KPI moves, analysts often spend time checking data quality, comp
 - **Bounds:** at most four tool calls per run; no SQL, arbitrary code execution, external writes, or business-system actions.
 - **Human review:** missing quality/comparison/definition evidence or an exhausted tool limit forces review.
 
-The actual agent uses OpenAI-compatible tool calling. If no API key is configured, the app offers an explicitly labelled deterministic preview; that preview is not an agent run.
+The actual agent uses OpenAI-compatible tool calling. Gemini is supported through Google's OpenAI-compatible endpoint; OpenAI can also be used. If no API key is configured, the app offers an explicitly labelled deterministic preview; that preview is not an agent run.
 
 ## Run locally on Windows
 
@@ -27,13 +27,15 @@ python -m pip install -r requirements.txt
 streamlit run app.py --server.port 8502
 ```
 
-The separate port keeps this prototype distinct from DeskPilot's local app. To enable the live agent, set `OPENAI_API_KEY` before starting Streamlit. Optionally set `OPENAI_MODEL` and `OPENAI_BASE_URL` for an approved compatible endpoint. Never commit keys or real business data.
+The separate port keeps this prototype distinct from DeskPilot's local app. To use Gemini, put `GEMINI_API_KEY` in `.streamlit/secrets.toml`; the app defaults to `gemini-2.5-flash` and Google's OpenAI-compatible endpoint. Optionally set `GEMINI_MODEL` or `GEMINI_BASE_URL`. For OpenAI, use `OPENAI_API_KEY`, with optional `OPENAI_MODEL` and `OPENAI_BASE_URL`. Never commit keys or real business data.
 
 ```powershell
-$env:OPENAI_API_KEY = "your-key"
-$env:OPENAI_MODEL = "gpt-4o-mini"
+$env:GEMINI_API_KEY = "your-key"
+$env:GEMINI_MODEL = "gemini-2.5-flash"
 streamlit run app.py --server.port 8502
 ```
+
+For Streamlit Community Cloud, add `GEMINI_API_KEY` and optionally `GEMINI_MODEL` in the app's **Settings → Secrets**. The app will show the selected provider and model, but never the key value.
 
 ## Test
 
@@ -49,4 +51,4 @@ The included data has revenue of 100,000 in 2026-09 and 88,000 in 2026-10. The 1
 
 ## Streamlit Community Cloud
 
-To deploy this app separately, create a repository for this package or deploy this folder from the existing repository by selecting `kpi_drift_agent/app.py` as the app file. Configure `OPENAI_API_KEY` in the app's Streamlit Secrets settings. The app should only be used with synthetic or approved data; anyone with the public URL can access a public deployment.
+To deploy this app separately, create a repository for this package or deploy this folder from the existing repository by selecting `kpi_drift_agent/app.py` as the app file. Configure `GEMINI_API_KEY` or `OPENAI_API_KEY` in the app's Streamlit Secrets settings. The app should only be used with synthetic or approved data; anyone with the public URL can access a public deployment.
