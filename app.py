@@ -123,7 +123,7 @@ def main() -> None:
             st.caption("Maximum four tool calls. No write or business-system tools are available.")
         else:
             st.warning("Offline preview only")
-            st.caption("Configure OPENAI_API_KEY to enable model-directed tool selection.")
+            st.caption("Configure GEMINI_API_KEY or OPENAI_API_KEY in Streamlit Secrets to enable model-directed tool selection.")
         st.subheader("Data boundary")
         st.caption("The investigation request, selected KPI and periods, and tool results are sent to the model. Raw CSV rows are analyzed locally and are not sent as a file.")
 
